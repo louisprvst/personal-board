@@ -3,11 +3,11 @@
 Le texte ci-dessous est le prompt de la routine Claude planifiée (via `/schedule`).
 Exemple de planning : tous les jours à 6 h 30, heure de Paris.
 
-Variables d'environnement à définir dans l'environnement de la routine :
-- `BOARD_URL` : par exemple `https://ton-app.up.railway.app`
-- `BOARD_TOKEN` : la même valeur que `API_TOKEN` sur Railway
-
-Le domaine Railway doit être autorisé dans l'accès réseau de cet environnement.
+Configuration de l'environnement cloud de la tâche (ici « DipBoard ») :
+- **Accès réseau** : `dip-board.up.railway.app` doit être autorisé.
+- **Secret** de type Bearer pour `dip-board.up.railway.app`, préfixe de chemin `/api/`,
+  en-tête `Authorization`, préfixe `Bearer`, valeur = `API_TOKEN` (celle de Railway).
+  Le jeton est ajouté automatiquement à la requête : le prompt ne l'envoie pas lui-même.
 
 ---
 
@@ -38,7 +38,7 @@ Une phrase d'accroche qui résume la journée.
 Syntaxe disponible : `#` / `##` pour les titres, listes `-` ou `1.`, `**gras**`, `*italique*`, `[lien](https://…)`, `>` pour une citation. Pas de HTML ni de tableaux.
 
 ## Publication
-Écris le JSON dans un fichier, puis envoie-le avec curl :
+Écris le JSON dans un fichier, puis envoie-le avec curl. N'ajoute **pas** d'en-tête `Authorization` : l'environnement l'ajoute lui-même.
 
 ```bash
 python3 - <<'PY'
@@ -48,12 +48,11 @@ pathlib.Path("/tmp/newsletter.json").write_text(json.dumps({
     "contenu": pathlib.Path("/tmp/newsletter.md").read_text(),
 }, ensure_ascii=False))
 PY
-curl -sS -X POST "$BOARD_URL/api/newsletter.php" \
-  -H "Authorization: Bearer $BOARD_TOKEN" \
+curl -sS -X POST "https://dip-board.up.railway.app/api/newsletter.php" \
   -H "Content-Type: application/json" \
   --data-binary @/tmp/newsletter.json
 ```
 
 Le titre est une accroche courte (60 caractères max) sur le fait marquant du jour. La date est mise automatiquement, à l'heure de Paris.
 
-Une réponse `{"ok":true,...}` confirme la publication. Si l'appel échoue, montre la réponse complète du serveur et réessaie une fois.
+Une réponse `{"ok":true,...}` confirme la publication. Si l'appel échoue, montre la réponse complète du serveur et réessaie une fois. Une erreur 401 (« Jeton invalide ») vient du secret de l'environnement : ne cherche pas de jeton ailleurs.

@@ -1,5 +1,6 @@
 <?php
-// Widget : la newsletter du jour, ou la plus récente s'il n'y en a pas encore aujourd'hui.
+// Widget : case « Newsletter » de l'accueil.
+// Affiche la newsletter du jour (ou la dernière reçue) en résumé ; un clic ouvre l'article complet.
 
 function widget_newsletter(): void
 {
@@ -7,13 +8,28 @@ function widget_newsletter(): void
     $n = newsletter_du($aujourdhui) ?? derniere_newsletter();
 
     if (!$n) {
-        echo '<section class="widget vide"><h2>Pas encore de newsletter</h2>'
-           . '<p class="meta">La routine Claude n\'a encore rien publié. Elle apparaîtra ici.</p></section>';
+        ?>
+        <section class="widget carte-widget vide">
+            <p class="widget-titre"><?= icone('journal', 16) ?> Newsletter</p>
+            <p class="meta">Rien de publié pour l'instant. La routine Claude la déposera ici chaque matin.</p>
+        </section>
+        <?php
         return;
     }
 
-    if ($n['date'] !== $aujourdhui) {
-        echo '<p class="bandeau">Pas encore de newsletter aujourd\'hui : voici la dernière reçue.</p>';
-    }
-    afficher_newsletter($n);
+    $du_jour = $n['date'] === $aujourdhui;
+    ?>
+    <a class="widget carte-widget lien-widget" href="/newsletter.php?date=<?= e($n['date']) ?>">
+        <p class="widget-titre">
+            <?= icone('journal', 16) ?> Newsletter
+            <?php if ($du_jour): ?><span class="pastille">Nouveau</span><?php endif; ?>
+        </p>
+        <p class="meta"><?= e(ucfirst(date_longue($n['date']))) ?> · <?= temps_lecture($n['contenu']) ?> min</p>
+        <h2><?= e($n['titre']) ?></h2>
+        <?php if ($resume = resume_markdown($n['contenu'])): ?>
+            <p class="resume"><?= e($resume) ?></p>
+        <?php endif; ?>
+        <span class="lire">Lire <?= icone('droite', 16) ?></span>
+    </a>
+    <?php
 }

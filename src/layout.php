@@ -47,8 +47,10 @@ function icone(string $nom, int $taille = 20): string
         . $dessins[$nom] . '</svg>';
 }
 
-function entete(string $titre, bool $avec_menu = true): void
+// $large = true pour l'accueil : la grille de widgets prend plus de place que la colonne de lecture.
+function entete(string $titre, bool $avec_menu = true, bool $large = false): void
 {
+    $classe = $large ? 'container large' : 'container';
     $css = '/style.css?v=' . filemtime(__DIR__ . '/../public/style.css');
     ?>
 <!doctype html>
@@ -67,7 +69,7 @@ function entete(string $titre, bool $avec_menu = true): void
 <body>
 <?php if ($avec_menu): ?>
 <header class="barre-haut">
-    <div class="container">
+    <div class="<?= $classe ?>">
         <a href="/" class="logo">Board</a>
         <nav>
             <a href="/archives.php" class="icone-bouton" title="Archives" aria-label="Archives"><?= icone('archives') ?></a>
@@ -76,7 +78,7 @@ function entete(string $titre, bool $avec_menu = true): void
     </div>
 </header>
 <?php endif; ?>
-<main class="container">
+<main class="<?= $classe ?>">
     <?php
 }
 

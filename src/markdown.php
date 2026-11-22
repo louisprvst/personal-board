@@ -70,6 +70,28 @@ function markdown(string $source): string
     return implode("\n", $html);
 }
 
+// Retire la syntaxe Markdown d'une ligne pour obtenir du texte brut.
+function md_texte(string $ligne): string
+{
+    $ligne = preg_replace('/\[([^\]]+)\]\([^)]*\)/', '$1', $ligne); // [texte](url) → texte
+    return trim(str_replace(['**', '`'], '', preg_replace('/(?<!\w)[*_](\S.*?\S|\S)[*_](?!\w)/', '$1', $ligne)));
+}
+
+// Premier paragraphe (l'accroche), en texte brut, coupé proprement s'il est trop long.
+function resume_markdown(string $source, int $max = 220): string
+{
+    foreach (preg_split('/\R/', $source) as $ligne) {
+        $ligne = trim($ligne);
+        if ($ligne === '' || preg_match('/^(#|[-*+>]|\d+[.)]|[-*_]{3})/', $ligne)) continue;
+        $texte = md_texte($ligne);
+        if (strlen($texte) <= $max) return $texte;
+        $coupe = substr($texte, 0, $max);
+        $coupe = substr($coupe, 0, strrpos($coupe, ' ') ?: $max);
+        return rtrim($coupe, " ,;:—-") . '…';
+    }
+    return '';
+}
+
 function md_inline(string $texte): string
 {
     $texte = htmlspecialchars($texte, ENT_QUOTES, 'UTF-8');
