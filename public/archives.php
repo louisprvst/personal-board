@@ -1,5 +1,5 @@
 <?php
-// Liste de toutes les newsletters reçues, de la plus récente à la plus ancienne.
+// Liste des newsletters gardées, de la plus récente à la plus ancienne.
 
 require_once __DIR__ . '/../src/layout.php';
 exiger_connexion();
@@ -7,8 +7,11 @@ exiger_connexion();
 $liste = toutes_les_newsletters();
 entete('Archives');
 ?>
-<section class="widget">
+<header class="entete-page">
+    <p class="surtitre"><?= icone('archives', 16) ?> Newsletters</p>
     <h1>Archives</h1>
+</header>
+<section class="carte">
     <?php if (!$liste): ?>
         <p class="meta">Rien pour l'instant.</p>
     <?php else: ?>

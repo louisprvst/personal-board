@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 entete('Connexion', false);
 ?>
-<section class="widget connexion">
+<section class="carte connexion">
     <p class="logo">Board</p>
     <?php if ($erreur): ?>
         <p class="erreur">Mot de passe incorrect.</p>

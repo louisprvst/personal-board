@@ -1,4 +1,4 @@
-/* Board : page de lecture calme. Interface en Inter, newsletter en Source Serif.
+/* Board : interface en Inter, titres et lecture en Source Serif.
    Thème clair / sombre selon les réglages de l'appareil. */
 
 :root {
@@ -8,16 +8,17 @@
     --trait: #e4e2db;
     --texte: #1b1b1d;
     --discret: #6b6a66;
-    --accent: #2f6f5e;       /* vert sapin : liens, puces */
+    --accent: #2f6f5e;       /* vert sapin */
     --accent-doux: #e3efe9;
     --alerte: #b4442f;
-    --rayon: 12px;
-    --lecture: 680px;        /* largeur de colonne confortable pour lire */
+    --rayon: 18px;
+    --ecart: 14px;           /* espace entre les cases */
+    --serif: 'Source Serif 4', Georgia, serif;
 }
 @media (prefers-color-scheme: dark) {
     :root {
         --fond: #111113;
-        --carte: #19191c;
+        --carte: #1a1a1d;
         --trait: #2a2a2f;
         --texte: #ececec;
         --discret: #9a9aa3;
@@ -40,10 +41,18 @@ a { color: var(--accent); text-underline-offset: 2px; }
 h1, h2, h3, h4, h5 { line-height: 1.2; letter-spacing: -.01em; margin: 0 0 .6rem; }
 p { margin: 0 0 1rem; }
 
-.container { width: 100%; max-width: var(--lecture); margin: 0 auto; padding: 0 16px; }
+.container { width: 100%; max-width: 680px; margin: 0 auto; padding: 0 16px; }
+.container.large { max-width: 1100px; }
 main.container { padding-top: 1.5rem; padding-bottom: 4rem; }
 .meta { color: var(--discret); font-size: .9rem; }
 .erreur { color: var(--alerte); font-weight: 600; }
+
+.pastille {
+    margin-left: auto;
+    background: var(--accent); color: var(--carte);
+    font-size: .7rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+    padding: .15rem .55rem; border-radius: 999px;
+}
 
 /* ---------- Barre du haut ---------- */
 .barre-haut {
@@ -54,8 +63,7 @@ main.container { padding-top: 1.5rem; padding-bottom: 4rem; }
 }
 .barre-haut .container { display: flex; align-items: center; justify-content: space-between; height: 56px; }
 .logo {
-    font-family: 'Source Serif 4', Georgia, serif;
-    font-weight: 700; font-size: 1.3rem;
+    font: 700 1.3rem var(--serif);
     color: var(--texte); text-decoration: none;
 }
 nav { display: flex; gap: .25rem; }
@@ -66,37 +74,122 @@ nav { display: flex; gap: .25rem; }
 }
 .icone-bouton:hover { background: var(--carte); color: var(--texte); }
 
-/* ---------- Widgets ---------- */
-.widget {
+/* ---------- Cartes ---------- */
+.carte {
     background: var(--carte);
     border: 1px solid var(--trait);
     border-radius: var(--rayon);
     padding: 1.25rem;
-    margin-bottom: 1.25rem;
 }
-.widget.vide { text-align: center; padding: 2.5rem 1.25rem; }
-.widget.vide h2 { font-size: 1.15rem; }
+.carte.vide { text-align: center; padding: 2.5rem 1.25rem; }
+.carte.vide h2 { font-size: 1.15rem; }
 
+/* Carte entièrement cliquable */
+.carte.lien { color: inherit; text-decoration: none; transition: border-color .15s, transform .15s; }
+.carte.lien:hover { border-color: var(--accent); }
+.carte.lien:active { transform: scale(.99); }
+.carte.lien:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-/* ---------- Newsletter ---------- */
-.newsletter > header { margin: .5rem 0 1.75rem; }
+/* ---------- Accueil : grille bento ----------
+   4 colonnes, lignes de hauteur fixe : toutes les cases d'une même taille
+   ont exactement les mêmes dimensions. Taille définie dans src/widgets.php. */
+.bento {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-auto-rows: 168px;
+    grid-auto-flow: dense;   /* comble les trous quand une case est absente */
+    gap: var(--ecart);
+}
+.tuile { min-width: 0; }
+.tuile.large { grid-column: span 2; }
+.tuile.grand { grid-column: span 2; grid-row: span 2; }
+
+@media (max-width: 760px) {
+    .bento { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 150px; }
+}
+
+/* Contenu d'une case : en-tête, zone qui remplit, pied collé en bas */
+.tuile > .carte {
+    height: 100%;
+    display: flex; flex-direction: column; gap: .5rem;
+    overflow: hidden;
+}
+:where(.tuile) p { margin: 0; }   /* :where = sans poids, ne gêne pas les règles ci-dessous */
+.tuile h2 { font: 700 1.35rem/1.2 var(--serif); margin: .1rem 0 .2rem; }
+.carte-titre {
+    display: flex; align-items: center; gap: .4rem;
+    font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--accent);
+}
+/* Prend la place restante ; un texte trop long s'estompe au lieu de déborder */
+.remplit {
+    flex: 1; min-height: 0; overflow: hidden;
+    display: flex; flex-direction: column; gap: .35rem;
+    mask-image: linear-gradient(#000 calc(100% - 2rem), transparent);
+}
+.bas { margin-top: auto; display: flex; align-items: center; gap: .25rem; }
+.separe { padding-top: .6rem; border-top: 1px solid var(--trait); }
+.carte.lien .separe { color: var(--accent); font-weight: 600; }
+.resume { color: var(--discret); line-height: 1.5; }
+
+/* Bonjour */
+.bonjour { justify-content: flex-end; background: var(--accent-doux); border-color: transparent; }
+.bonjour h1 { font: 700 clamp(2rem, 5vw, 2.6rem)/1.1 var(--serif); margin: 0; }
+
+/* Compte à rebours */
+.grand-chiffre {
+    font: 700 3.2rem/1 var(--serif);
+    letter-spacing: -.03em;
+    margin-top: auto;   /* pousse le chiffre et sa légende vers le bas */
+}
+.grand-chiffre + .bas { margin-top: 0; }
+
+/* Semaine en points */
+.points {
+    list-style: none; padding: 0; margin: auto 0 0;
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;
+    text-align: center;
+}
+.points li { display: grid; justify-items: center; gap: .35rem; }
+.points span { font-size: .72rem; font-weight: 600; color: var(--discret); }
+.points i {
+    width: 14px; height: 14px; border-radius: 50%;
+    border: 2px solid var(--trait);
+}
+.points .seance i { background: var(--accent); border-color: var(--accent); }
+.points .passe { opacity: .45; }
+.points .aujourdhui span { color: var(--accent); }
+.points .aujourdhui i { outline: 2px solid var(--accent); outline-offset: 2px; }
+.points + .bas { margin-top: .6rem; }
+
+/* ---------- Pages ---------- */
+.entete-page { margin: .5rem 0 1.5rem; }
+.entete-page h1 { font: 700 clamp(1.8rem, 6vw, 2.4rem)/1.15 var(--serif); margin-bottom: .25rem; }
 .surtitre {
     display: flex; align-items: center; gap: .4rem;
     color: var(--discret); font-size: .85rem; font-weight: 500;
     margin-bottom: .5rem;
 }
-.newsletter h1 {
-    font-family: 'Source Serif 4', Georgia, serif;
-    font-size: clamp(1.8rem, 6vw, 2.4rem); font-weight: 700;
+
+.navigation {
+    display: flex; justify-content: space-between; gap: 1rem;
+    margin-top: 3rem; padding-top: 1.25rem;
+    border-top: 1px solid var(--trait);
+    font-size: .9rem;
 }
+.navigation a { display: inline-flex; align-items: center; gap: .3rem; text-decoration: none; }
+.lien-archives { margin-top: 1.5rem; text-align: center; font-size: .9rem; font-weight: 600; }
+.lien-archives a { display: inline-flex; align-items: center; gap: .35rem; text-decoration: none; }
+.lien-archives a:hover { text-decoration: underline; }
+
+/* ---------- Newsletter ---------- */
 .contenu {
-    font-family: 'Source Serif 4', Georgia, serif;
-    font-size: 1.12rem; line-height: 1.7;
+    font: 1.12rem/1.7 var(--serif);
     overflow-wrap: anywhere;
 }
 .contenu h2 {
-    font-family: 'Inter', system-ui, sans-serif;
-    font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em;
+    font: 700 .8rem 'Inter', system-ui, sans-serif;
+    text-transform: uppercase; letter-spacing: .08em;
     color: var(--accent);
     margin: 2.5rem 0 1rem; padding-bottom: .5rem;
     border-bottom: 1px solid var(--trait);
@@ -118,14 +211,6 @@ nav { display: flex; gap: .25rem; }
     background: var(--accent-doux); padding: .1em .35em; border-radius: 4px;
 }
 
-.navigation {
-    display: flex; justify-content: space-between; gap: 1rem;
-    margin-top: 3rem; padding-top: 1.25rem;
-    border-top: 1px solid var(--trait);
-    font-size: .9rem;
-}
-.navigation a { display: inline-flex; align-items: center; gap: .3rem; text-decoration: none; }
-
 /* ---------- Archives ---------- */
 .archives { list-style: none; padding: 0; margin: 0; }
 .archives li + li { border-top: 1px solid var(--trait); }
@@ -136,6 +221,37 @@ nav { display: flex; gap: .25rem; }
 .archives a:hover .titre { color: var(--accent); }
 .archives .date { font-size: .8rem; color: var(--discret); }
 .archives .titre { font-weight: 600; }
+
+/* ---------- Entraînement ---------- */
+.repos { color: var(--discret); }
+.detail-seance { white-space: pre-line; line-height: 1.55; }
+
+.objectif-semaine {
+    background: var(--accent-doux);
+    border-radius: var(--rayon);
+    padding: .9rem 1.1rem;
+    line-height: 1.55;
+}
+.jours { list-style: none; padding: 0; margin: 1.25rem 0 0; display: grid; gap: .75rem; }
+.jour {
+    background: var(--carte);
+    border: 1px solid var(--trait);
+    border-radius: var(--rayon);
+    padding: 1rem 1.1rem;
+}
+.jour.aujourdhui { border: 2px solid var(--accent); }
+.jour.passe { opacity: .55; }
+.jour > p { margin: 0 0 .3rem; }
+.jour > p:last-child { margin-bottom: 0; }
+.jour .jour-date {
+    display: flex; align-items: center; gap: .5rem;
+    font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--discret);
+}
+.jour-date span:not(.pastille) { font-weight: 500; letter-spacing: 0; }
+.jour-type { font-weight: 700; font-size: 1.08rem; }
+.jour .detail-seance { font-size: .95rem; }
+.jour .detail-seance + .jour-type { margin-top: .75rem; }
 
 /* ---------- Connexion ---------- */
 .connexion { max-width: 360px; margin: 18vh auto 0; text-align: center; }
@@ -152,56 +268,8 @@ input[type=password]:focus { outline: 2px solid var(--accent); outline-offset: 1
 input[aria-invalid=true] { border-color: var(--alerte); }
 button {
     font: 600 1rem 'Inter', system-ui, sans-serif;
-    color: #fff; background: var(--accent);
+    color: var(--carte); background: var(--accent);
     border: 0; border-radius: 8px; padding: .75rem;
     cursor: pointer;
 }
-@media (prefers-color-scheme: dark) { button { color: #0f1d18; } }
 button:hover { filter: brightness(1.08); }
-
-/* ---------- Accueil : grille de widgets ---------- */
-.container.large { max-width: 1100px; }
-.accueil { margin: .5rem 0 1.5rem; }
-.accueil h1 {
-    font-family: 'Source Serif 4', Georgia, serif;
-    font-size: clamp(1.8rem, 6vw, 2.4rem); font-weight: 700;
-}
-.accueil .meta { margin-bottom: .25rem; }
-
-.grille {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
-    gap: 1rem;
-    align-items: start;
-}
-.grille > .widget { margin: 0; }
-
-.carte-widget { display: flex; flex-direction: column; gap: .5rem; }
-.carte-widget p { margin: 0; }
-.carte-widget h2 {
-    font-family: 'Source Serif 4', Georgia, serif;
-    font-size: 1.35rem; font-weight: 700; margin: .25rem 0 0;
-}
-.widget-titre {
-    display: flex; align-items: center; gap: .4rem;
-    font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em;
-    color: var(--accent);
-}
-.pastille {
-    margin-left: auto;
-    background: var(--accent); color: var(--carte);
-    font-size: .7rem; letter-spacing: .04em;
-    padding: .15rem .5rem; border-radius: 999px;
-}
-.resume { color: var(--discret); line-height: 1.5; }
-.lire {
-    display: inline-flex; align-items: center; gap: .25rem;
-    margin-top: .5rem; font-weight: 600; font-size: .9rem; color: var(--accent);
-}
-
-/* Toute la case est cliquable */
-.lien-widget { color: inherit; text-decoration: none; transition: border-color .15s, transform .15s; }
-.lien-widget:hover { border-color: var(--accent); }
-.lien-widget:hover .lire { text-decoration: underline; }
-.lien-widget:active { transform: scale(.99); }
-.lien-widget:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

@@ -1,9 +1,10 @@
 <?php
-// Fonctions partagées par toutes les pages.
+// Socle des pages HTML : données, connexion, en-tête et pied de page, petites aides d'affichage.
 
-require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/markdown.php';
+require_once __DIR__ . '/newsletters.php';
+require_once __DIR__ . '/entrainement.php';
 
 // Échappe un texte avant de l'afficher (protection XSS).
 function e(?string $texte): string
@@ -11,31 +12,31 @@ function e(?string $texte): string
     return htmlspecialchars($texte ?? '', ENT_QUOTES, 'UTF-8');
 }
 
-const FUSEAU = 'Europe/Paris';
-date_default_timezone_set(FUSEAU);
+const JOURS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+const MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet',
+              'août', 'septembre', 'octobre', 'novembre', 'décembre'];
 
-// « dimanche 22 novembre 2026 »
-function date_longue(string $date): string
+// « dimanche 22 novembre 2026 », ou « 22 novembre 2026 » sans le jour.
+// Fait à la main : l'image Docker officielle de PHP n'a pas l'extension intl.
+function date_longue(string $date, bool $avec_jour = true): string
 {
-    // Fait à la main : l'image Docker officielle de PHP n'a pas l'extension intl.
-    $jours = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
-    $mois = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet',
-             'août', 'septembre', 'octobre', 'novembre', 'décembre'];
     $d = new DateTimeImmutable($date);
-    return $jours[(int)$d->format('w')] . ' ' . (int)$d->format('j') . ' '
-        . $mois[(int)$d->format('n') - 1] . ' ' . $d->format('Y');
+    $texte = (int)$d->format('j') . ' ' . MOIS[(int)$d->format('n') - 1] . ' ' . $d->format('Y');
+    return $avec_jour ? jour_semaine($date) . ' ' . $texte : $texte;
 }
 
-// Temps de lecture estimé (230 mots / minute), minimum 1 minute.
-function temps_lecture(string $texte): int
+function jour_semaine(string $date): string
 {
-    return max(1, (int)round(str_word_count(strip_tags($texte)) / 230));
+    return JOURS[(int)(new DateTimeImmutable($date))->format('w')];
 }
 
 // Icônes au trait (dessins du jeu libre Lucide).
 function icone(string $nom, int $taille = 20): string
 {
     $dessins = [
+        'course'      => '<path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/>',
+        'drapeau'     => '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/>',
+        'calendrier'  => '<rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/>',
         'archives'    => '<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/>',
         'deconnexion' => '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>',
         'gauche'      => '<path d="m15 18-6-6 6-6"/>',
@@ -47,7 +48,7 @@ function icone(string $nom, int $taille = 20): string
         . $dessins[$nom] . '</svg>';
 }
 
-// $large = true pour l'accueil : la grille de widgets prend plus de place que la colonne de lecture.
+// $large : page plus large que la colonne de lecture (accueil et sa grille).
 function entete(string $titre, bool $avec_menu = true, bool $large = false): void
 {
     $classe = $large ? 'container large' : 'container';
@@ -72,7 +73,6 @@ function entete(string $titre, bool $avec_menu = true, bool $large = false): voi
     <div class="<?= $classe ?>">
         <a href="/" class="logo">Board</a>
         <nav>
-            <a href="/archives.php" class="icone-bouton" title="Archives" aria-label="Archives"><?= icone('archives') ?></a>
             <a href="/logout.php" class="icone-bouton" title="Se déconnecter" aria-label="Se déconnecter"><?= icone('deconnexion') ?></a>
         </nav>
     </div>
@@ -88,29 +88,5 @@ function pied(): void
 </main>
 </body>
 </html>
-    <?php
-}
-
-// Affiche une newsletter complète (titre, méta, contenu, navigation).
-function afficher_newsletter(array $n): void
-{
-    $prec = date_voisine($n['date'], false);
-    $suiv = date_voisine($n['date'], true);
-    ?>
-    <article class="newsletter">
-        <header>
-            <p class="surtitre"><?= icone('journal', 16) ?> <?= e(ucfirst(date_longue($n['date']))) ?> · <?= temps_lecture($n['contenu']) ?> min de lecture</p>
-            <h1><?= e($n['titre']) ?></h1>
-        </header>
-        <div class="contenu"><?= markdown($n['contenu']) ?></div>
-        <footer class="navigation">
-            <?php if ($prec): ?>
-                <a href="/newsletter.php?date=<?= e($prec) ?>"><?= icone('gauche', 16) ?> <?= e(date_longue($prec)) ?></a>
-            <?php else: ?><span></span><?php endif; ?>
-            <?php if ($suiv): ?>
-                <a href="/newsletter.php?date=<?= e($suiv) ?>"><?= e(date_longue($suiv)) ?> <?= icone('droite', 16) ?></a>
-            <?php endif; ?>
-        </footer>
-    </article>
     <?php
 }

@@ -16,7 +16,7 @@ function hash_mot_de_passe(): string
     $hash = secret('MOT_DE_PASSE_HASH');
     if ($hash === null) {
         http_response_code(500);
-        exit('Mot de passe non défini : lance « php bin/creer-env.php » (en local) ou définis MOT_DE_PASSE_HASH (sur Railway).');
+        exit('Mot de passe non défini : ajoute-le dans .env (en local) ou définis MOT_DE_PASSE_HASH (sur Railway).');
     }
     return $hash;
 }

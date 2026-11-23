@@ -1,6 +1,8 @@
 # Personal Board
 
-Dashboard personnel hébergé sur Railway. Pour l'instant, il affiche une newsletter finance et tech publiée chaque matin par une routine Claude.
+Dashboard personnel hébergé sur Railway, en grille « bento ». Il affiche :
+- la newsletter finance et tech publiée chaque matin par une routine Claude ;
+- le plan d'entraînement de course à pied publié par un chat Claude via un connecteur.
 
 Stack : PHP 8.3 sans framework ni dépendance, SQLite sur un volume Railway.
 
@@ -8,19 +10,23 @@ Stack : PHP 8.3 sans framework ni dépendance, SQLite sur un volume Railway.
 
 ```
 public/                 racine web
-  index.php             dashboard (affiche les widgets)
+  index.php             accueil : grille de widgets
   newsletter.php        une newsletter : ?date=AAAA-MM-JJ
-  archives.php          historique
+  archives.php          liste des newsletters gardées
+  entrainement.php      plan de la semaine : ?lundi=AAAA-MM-JJ
   login.php, logout.php
   api/newsletter.php    POST protégé par un jeton (utilisé par la routine)
+  mcp.php               connecteur Claude (serveur MCP)
   style.css
 src/
   secrets.php           lit les variables d'environnement, ou .env en local
+  db.php                connexion SQLite, tables, fuseau horaire
+  newsletters.php       requêtes des newsletters
+  entrainement.php      requêtes et aides du plan d'entraînement
   auth.php              mot de passe unique + cookie signé
-  db.php                SQLite + requêtes
   markdown.php          Markdown → HTML (sûr : le HTML brut est échappé)
-  layout.php            en-tête, pied de page, affichage d'une newsletter
-  widgets.php           liste et ordre des widgets
+  layout.php            en-tête, pied de page, dates, icônes
+  widgets.php           liste, ordre et taille des widgets
   widgets/              un fichier par widget
 docs/
   routine-newsletter.md prompt de la routine Claude
@@ -29,8 +35,16 @@ docs/
 ## En local
 
 ```bash
-php bin/creer-env.php            # demande le mot de passe, crée .env (hash + jeton)
 php -S localhost:8080 -t public  # puis ouvre http://localhost:8080
+```
+
+Le fichier `.env` (à la racine, ignoré par git et Docker) contient :
+
+```
+MOT_DE_PASSE_HASH=...   # php -r 'echo password_hash("ton-mot-de-passe", PASSWORD_DEFAULT), "\n";'
+API_TOKEN=...           # php -r 'echo bin2hex(random_bytes(32)), "\n";'
+MCP_SECRET=...          # php -r 'echo bin2hex(random_bytes(24)), "\n";'
+DB_PATH=data/board.sqlite
 ```
 
 Pour publier une newsletter de test :
@@ -52,6 +66,7 @@ curl -X POST http://localhost:8080/api/newsletter.php \
    - `DB_PATH` = `/data/board.sqlite`
    - `MOT_DE_PASSE_HASH` = la valeur copiée de ton `.env`
    - `API_TOKEN` = la valeur copiée de ton `.env`
+   - `MCP_SECRET` = la valeur copiée de ton `.env`
 4. Dans Settings → Networking, génère un domaine public.
 
 ## API
@@ -68,7 +83,17 @@ curl -X POST https://ton-app.up.railway.app/api/newsletter.php \
 - Seules les 7 newsletters les plus récentes sont gardées : à chaque publication, les plus anciennes sont supprimées. Pour changer ce nombre, modifie `NEWSLETTERS_GARDEES` dans `src/db.php`.
 - Codes de réponse : `201` créée, `200` remplacée, `401` jeton invalide, `422` données invalides.
 
+## Connecteur Claude (entraînement)
+
+`public/mcp.php` est un serveur MCP : ton chat Claude l'utilise pour publier ton plan de course à pied.
+
+- Adresse à ajouter dans claude.ai (Paramètres → Connecteurs → Ajouter un connecteur personnalisé) :
+  `https://dip-board.up.railway.app/mcp.php/<MCP_SECRET>`. Le secret dans l'adresse sert de mot de passe, garde-la pour toi.
+- Outils : `publier_semaine` (lundi, objectif, séances `{date, type, detail}`, course visée) et `lire_semaine`.
+- Seules la semaine en cours et les suivantes sont gardées.
+- Affichage : case « Entraînement » sur l'accueil (séance du jour) et page `/entrainement.php` (semaine complète).
+
 ## Ajouter un widget
 
-1. Crée `src/widgets/meteo.php` avec une fonction `widget_meteo(): void` qui affiche une `<section class="widget">…</section>`.
-2. Ajoute `'meteo'` dans `WIDGETS` (`src/widgets.php`), à la position voulue.
+1. Crée `src/widgets/meteo.php` avec une fonction `widget_meteo(): void` qui affiche le contenu de la case : `<section class="carte">…</section>`, ou `<a class="carte lien" href="…">…</a>` pour une case cliquable. Si elle n'affiche rien, la case est retirée de la grille.
+2. Ajoute `'meteo' => 'petit'` dans `WIDGETS` (`src/widgets.php`), à la position voulue. Tailles : `petit` (1 × 1), `large` (2 × 1), `grand` (2 × 2).

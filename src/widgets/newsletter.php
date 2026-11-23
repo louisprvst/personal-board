@@ -1,35 +1,32 @@
 <?php
-// Widget : case « Newsletter » de l'accueil.
-// Affiche la newsletter du jour (ou la dernière reçue) en résumé ; un clic ouvre l'article complet.
+// Widget : la newsletter du jour (ou la dernière reçue) en résumé ; un clic ouvre l'article.
 
 function widget_newsletter(): void
 {
-    $aujourdhui = date('Y-m-d');
-    $n = newsletter_du($aujourdhui) ?? derniere_newsletter();
-
+    $n = newsletter_du(date('Y-m-d')) ?? derniere_newsletter();
     if (!$n) {
         ?>
-        <section class="widget carte-widget vide">
-            <p class="widget-titre"><?= icone('journal', 16) ?> Newsletter</p>
+        <section class="carte">
+            <p class="carte-titre"><?= icone('journal', 16) ?> Newsletter</p>
             <p class="meta">Rien de publié pour l'instant. La routine Claude la déposera ici chaque matin.</p>
         </section>
         <?php
         return;
     }
-
-    $du_jour = $n['date'] === $aujourdhui;
     ?>
-    <a class="widget carte-widget lien-widget" href="/newsletter.php?date=<?= e($n['date']) ?>">
-        <p class="widget-titre">
+    <a class="carte lien" href="/newsletter.php?date=<?= e($n['date']) ?>">
+        <p class="carte-titre">
             <?= icone('journal', 16) ?> Newsletter
-            <?php if ($du_jour): ?><span class="pastille">Nouveau</span><?php endif; ?>
+            <?php if ($n['date'] === date('Y-m-d')): ?><span class="pastille">Nouveau</span><?php endif; ?>
         </p>
-        <p class="meta"><?= e(ucfirst(date_longue($n['date']))) ?> · <?= temps_lecture($n['contenu']) ?> min</p>
-        <h2><?= e($n['titre']) ?></h2>
-        <?php if ($resume = resume_markdown($n['contenu'])): ?>
-            <p class="resume"><?= e($resume) ?></p>
-        <?php endif; ?>
-        <span class="lire">Lire <?= icone('droite', 16) ?></span>
+        <div class="remplit">
+            <p class="meta"><?= e(ucfirst(date_longue($n['date']))) ?> · <?= temps_lecture($n['contenu']) ?> min</p>
+            <h2><?= e($n['titre']) ?></h2>
+            <?php if ($resume = resume_markdown($n['contenu'])): ?>
+                <p class="resume"><?= e($resume) ?></p>
+            <?php endif; ?>
+        </div>
+        <p class="meta bas separe">Lire <?= icone('droite', 16) ?></p>
     </a>
     <?php
 }

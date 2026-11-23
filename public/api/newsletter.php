@@ -9,9 +9,7 @@
 // Republier à une date existante remplace la newsletter de ce jour.
 // Seules les 7 plus récentes sont gardées (NEWSLETTERS_GARDEES dans src/db.php).
 
-require_once __DIR__ . '/../../src/secrets.php';
-require_once __DIR__ . '/../../src/db.php';
-date_default_timezone_set('Europe/Paris');
+require_once __DIR__ . '/../../src/newsletters.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
