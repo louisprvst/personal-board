@@ -7,7 +7,9 @@
 //
 // Outils exposés :
 //   - publier_semaine : enregistre le plan d'entraînement d'une semaine (remplace l'existant)
-//   - lire_semaine    : relit le plan publié pour une semaine
+//   - lire_semaine    : relit le plan publié pour une semaine (passée, en cours ou future)
+//   - lire_historique : relit les dernières semaines passées
+//   - publier_bilan   : ajoute ou remplace le bilan d'une semaine déjà publiée
 
 require_once __DIR__ . '/../src/entrainement.php';
 
@@ -68,7 +70,10 @@ switch ($message['method']) {
             'serverInfo' => ['name' => 'personal-board', 'version' => '1.0.0'],
             'instructions' => "Dashboard personnel de l'utilisateur. Quand tu prépares son plan "
                 . "d'entraînement de course à pied pour une semaine, publie-le avec publier_semaine "
-                . "(une entrée par jour, du lundi au dimanche, repos compris). Il le lira sur son dashboard.",
+                . "(une entrée par jour, du lundi au dimanche, repos compris). Il le lira sur son dashboard. "
+                . "Les semaines passées restent consultables avec lire_semaine et lire_historique, "
+                . "à comparer avec ce qu'il a réellement couru sur Strava. En fin de semaine, "
+                . "ajoute ton bilan avec publier_bilan.",
         ]]);
 
     case 'ping':
@@ -84,6 +89,8 @@ switch ($message['method']) {
             $texte = match ($nom) {
                 'publier_semaine' => outil_publier_semaine($args),
                 'lire_semaine'    => outil_lire_semaine($args),
+                'lire_historique' => outil_lire_historique($args),
+                'publier_bilan'   => outil_publier_bilan($args),
                 default => throw new InvalidArgumentException("Outil inconnu : $nom"),
             };
             $resultat = ['content' => [['type' => 'text', 'text' => $texte]]];
@@ -138,12 +145,43 @@ function outils(): array
         [
             'name' => 'lire_semaine',
             'title' => "Lire le plan d'entraînement publié",
-            'description' => 'Renvoie le plan publié pour une semaine (par défaut la semaine en cours). '
-                . 'Seules la semaine en cours et les suivantes sont conservées.',
+            'description' => 'Renvoie le plan publié pour une semaine, passée, en cours ou future '
+                . '(par défaut la semaine en cours).',
             'inputSchema' => [
                 'type' => 'object',
                 'properties' => [
                     'lundi' => $date + ['description' => 'Lundi de la semaine voulue (facultatif).'],
+                ],
+            ],
+            'annotations' => ['readOnlyHint' => true],
+        ],
+        [
+            'name' => 'publier_bilan',
+            'title' => 'Publier le bilan de la semaine',
+            'description' => "Ajoute (ou remplace) le bilan d'une semaine déjà publiée, en cours ou passée. "
+                . "Il s'affiche sur le dashboard au-dessus du plan de la semaine. Markdown accepté : "
+                . "**gras**, *italique*, listes « - », titres « # », liens [texte](https://…). "
+                . "Exemple de contenu : séances faites ou non, km, allures et FC observées sur Strava, "
+                . "sensations, points de vigilance, ce qui change la semaine suivante.",
+            'inputSchema' => [
+                'type' => 'object',
+                'properties' => [
+                    'lundi' => $date + ['description' => 'Lundi de la semaine concernée (AAAA-MM-JJ).'],
+                    'bilan' => ['type' => 'string', 'description' => 'Le bilan, en Markdown.'],
+                ],
+                'required' => ['lundi', 'bilan'],
+            ],
+        ],
+        [
+            'name' => 'lire_historique',
+            'title' => "Lire l'historique des plans",
+            'description' => 'Renvoie les plans des dernières semaines passées (avant la semaine en cours), '
+                . 'de la plus récente à la plus ancienne. Utile pour faire le bilan et construire la progression.',
+            'inputSchema' => [
+                'type' => 'object',
+                'properties' => [
+                    'nombre' => ['type' => 'integer', 'minimum' => 1, 'maximum' => 20,
+                        'description' => 'Nombre de semaines à renvoyer (4 par défaut, 20 au maximum).'],
                 ],
             ],
             'annotations' => ['readOnlyHint' => true],
@@ -168,7 +206,7 @@ function outil_publier_semaine(array $a): string
     }
     $dimanche = decaler($lundi, 6);
     if ($dimanche < date('Y-m-d')) {
-        throw new InvalidArgumentException('Cette semaine est déjà terminée : seules la semaine en cours et les suivantes sont acceptées.');
+        throw new InvalidArgumentException('Cette semaine est déjà terminée : seules la semaine en cours et les suivantes peuvent être publiées.');
     }
 
     if (!is_array($a['seances'] ?? null) || !$a['seances']) {
@@ -198,19 +236,55 @@ function outil_publier_semaine(array $a): string
         $existait ? 'remplacé' : 'publié', $lundi, $dimanche, count($seances), count($seances) > 1 ? 's' : '');
 }
 
+function outil_publier_bilan(array $a): string
+{
+    $lundi = lundi_de(verifier_date($a['lundi'] ?? null, 'lundi'));
+    $bilan = trim((string)($a['bilan'] ?? ''));
+    if ($bilan === '') {
+        throw new InvalidArgumentException('bilan est requis.');
+    }
+    if ($lundi > lundi_de(date('Y-m-d'))) {
+        throw new InvalidArgumentException("La semaine du $lundi n'a pas encore commencé : pas de bilan possible.");
+    }
+    $semaine = semaine_entrainement($lundi);
+    if (!$semaine) {
+        throw new InvalidArgumentException("Aucun plan publié pour la semaine du $lundi : publie d'abord le plan avec publier_semaine.");
+    }
+    enregistrer_bilan($lundi, $bilan);
+    return sprintf('Bilan %s pour la semaine du %s. Il est visible sur le dashboard.',
+        $semaine['bilan'] ? 'remplacé' : 'publié', $lundi);
+}
+
 function outil_lire_semaine(array $a): string
 {
     $lundi = isset($a['lundi']) ? lundi_de(verifier_date($a['lundi'], 'lundi')) : lundi_de(date('Y-m-d'));
     $s = semaine_entrainement($lundi);
-    if (!$s) {
-        return "Aucun plan publié pour la semaine du $lundi.";
+    return $s ? json_encode(semaine_pour_claude($s), JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)
+              : "Aucun plan publié pour la semaine du $lundi.";
+}
+
+function outil_lire_historique(array $a): string
+{
+    $nombre = $a['nombre'] ?? 4;
+    if (!is_int($nombre) || $nombre < 1 || $nombre > 20) {
+        throw new InvalidArgumentException('nombre doit être un entier entre 1 et 20.');
     }
-    return json_encode([
+    $semaines = semaines_avant(lundi_de(date('Y-m-d')), $nombre);
+    return $semaines ? json_encode(array_map('semaine_pour_claude', $semaines), JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)
+                     : 'Aucune semaine passée enregistrée.';
+}
+
+// Ce qu'on renvoie au modèle pour une semaine (le dimanche est ajouté pour lever toute ambiguïté).
+function semaine_pour_claude(array $s): array
+{
+    return [
         'lundi' => $s['lundi'],
+        'dimanche' => decaler($s['lundi'], 6),
         'objectif' => $s['objectif'],
         'seances' => $s['seances'],
         'course_nom' => $s['course_nom'],
         'course_date' => $s['course_date'],
+        'bilan' => $s['bilan'],
         'modifie_le' => $s['modifie_le'],
-    ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+    ];
 }

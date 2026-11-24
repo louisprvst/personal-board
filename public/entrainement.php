@@ -12,7 +12,7 @@ $lundi = preg_match('/^\d{4}-\d{2}-\d{2}$/', $demande) ? lundi_de($demande) : $c
 $semaine = semaine_entrainement($lundi);
 $precedent = decaler($lundi, -7);
 $suivant = decaler($lundi, 7);
-$a_precedente = $precedent >= $courant && semaine_entrainement($precedent);
+$a_precedente = (bool)semaine_entrainement($precedent);
 $a_suivante = (bool)semaine_entrainement($suivant);
 $course = course_visee();
 
@@ -31,6 +31,13 @@ entete('Entraînement');
         <p class="meta">Demande à ton chat Claude de publier la semaine avec le connecteur du dashboard.</p>
     </section>
 <?php else: ?>
+    <?php if ($semaine['bilan']): ?>
+        <section class="carte bilan">
+            <p class="carte-titre"><?= icone('bilan', 16) ?> Bilan du coach</p>
+            <div class="contenu-bilan"><?= markdown($semaine['bilan']) ?></div>
+        </section>
+    <?php endif; ?>
+
     <?php if ($semaine['objectif'] !== ''): ?>
         <p class="objectif-semaine"><?= e($semaine['objectif']) ?></p>
     <?php endif; ?>

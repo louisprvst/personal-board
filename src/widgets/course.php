@@ -10,7 +10,7 @@ function widget_course(): void
     <a class="carte lien" href="/entrainement.php">
         <p class="carte-titre"><?= icone('drapeau', 16) ?> <?= e($course['nom'] ?? 'Course') ?></p>
         <p class="grand-chiffre"><?= $course['jours'] === 0 ? 'Jour J' : $course['jours'] ?></p>
-        <p class="meta bas"><?= $course['jours'] === 0 ? "C'est aujourd'hui" : 'jours · ' . e(date_longue($course['date'], false)) ?></p>
+        <p class="meta bas"><?= $course['jours'] === 0 ? "C'est aujourd'hui" : e(date_longue($course['date'], false)) ?></p>
     </a>
     <?php
 }

@@ -44,8 +44,15 @@ function db(): PDO
         seances     TEXT NOT NULL,         -- JSON : [{"date", "type", "detail"}, ...]
         course_nom  TEXT,                  -- course visée, ex. « 10 km »
         course_date TEXT,                  -- AAAA-MM-JJ
+        bilan       TEXT,                  -- bilan du coach en Markdown, ajouté après coup
         modifie_le  TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )');
+
+    // Migrations : colonnes ajoutées après la création de la table sur une base existante.
+    $colonnes = $pdo->query('PRAGMA table_info(semaines_entrainement)')->fetchAll(PDO::FETCH_COLUMN, 1);
+    if (!in_array('bilan', $colonnes, true)) {
+        $pdo->exec('ALTER TABLE semaines_entrainement ADD COLUMN bilan TEXT');
+    }
 
     return $pdo;
 }

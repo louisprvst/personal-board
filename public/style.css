@@ -226,6 +226,20 @@ nav { display: flex; gap: .25rem; }
 .repos { color: var(--discret); }
 .detail-seance { white-space: pre-line; line-height: 1.55; }
 
+.bilan { margin-bottom: .9rem; border: 2px solid var(--accent); }
+.bilan .carte-titre { margin-bottom: .6rem; }
+.contenu-bilan { line-height: 1.6; overflow-wrap: anywhere; }
+.contenu-bilan > :last-child { margin-bottom: 0; }
+.contenu-bilan h2, .contenu-bilan h3, .contenu-bilan h4 { font-size: 1rem; margin: 1rem 0 .4rem; }
+.contenu-bilan ul, .contenu-bilan ol { padding-left: 1.2rem; margin: 0 0 .8rem; }
+.contenu-bilan li { margin-bottom: .3rem; }
+.contenu-bilan li::marker { color: var(--accent); }
+.contenu-bilan blockquote {
+    margin: 0 0 .8rem; padding: .1rem 0 .1rem .8rem;
+    border-left: 3px solid var(--accent); color: var(--discret);
+}
+.contenu-bilan blockquote p { margin: 0; }
+
 .objectif-semaine {
     background: var(--accent-doux);
     border-radius: var(--rayon);

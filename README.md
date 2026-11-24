@@ -89,8 +89,8 @@ curl -X POST https://ton-app.up.railway.app/api/newsletter.php \
 
 - Adresse à ajouter dans claude.ai (Paramètres → Connecteurs → Ajouter un connecteur personnalisé) :
   `https://dip-board.up.railway.app/mcp.php/<MCP_SECRET>`. Le secret dans l'adresse sert de mot de passe, garde-la pour toi.
-- Outils : `publier_semaine` (lundi, objectif, séances `{date, type, detail}`, course visée) et `lire_semaine`.
-- Seules la semaine en cours et les suivantes sont gardées.
+- Outils : `publier_semaine` (lundi, objectif, séances `{date, type, detail}`, course visée), `publier_bilan` (bilan d'une semaine en cours ou passée, en Markdown), `lire_semaine` et `lire_historique` (les dernières semaines passées).
+- Toutes les semaines sont gardées. On ne peut publier que la semaine en cours ou les suivantes.
 - Affichage : case « Entraînement » sur l'accueil (séance du jour) et page `/entrainement.php` (semaine complète).
 
 ## Ajouter un widget
