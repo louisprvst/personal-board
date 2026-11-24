@@ -17,6 +17,10 @@ public/                 racine web
   login.php, logout.php
   api/newsletter.php    POST protégé par un jeton (utilisé par la routine)
   mcp.php               connecteur Claude (serveur MCP)
+  notifications.php     activation des notifications sur l'appareil (+ notifications.js)
+  api/push.php          abonnement / désabonnement / test des notifications
+  sw.js                 service worker : reçoit et affiche les notifications
+  manifest.json         manifeste d'application (écran d'accueil, plein écran)
   style.css
 src/
   secrets.php           lit les variables d'environnement, ou .env en local
@@ -27,6 +31,7 @@ src/
   markdown.php          Markdown → HTML (sûr : le HTML brut est échappé)
   layout.php            en-tête, pied de page, dates, icônes
   widgets.php           liste, ordre et taille des widgets
+  push.php              envoi des notifications (Web Push : VAPID + chiffrement, OpenSSL pur)
   widgets/              un fichier par widget
 docs/
   routine-newsletter.md prompt de la routine Claude
@@ -44,6 +49,8 @@ Le fichier `.env` (à la racine, ignoré par git et Docker) contient :
 MOT_DE_PASSE_HASH=...   # php -r 'echo password_hash("ton-mot-de-passe", PASSWORD_DEFAULT), "\n";'
 API_TOKEN=...           # php -r 'echo bin2hex(random_bytes(32)), "\n";'
 MCP_SECRET=...          # php -r 'echo bin2hex(random_bytes(24)), "\n";'
+VAPID_PUBLIC=...        # clés des notifications, générées ensemble :
+VAPID_PRIVATE=...       # php -r 'putenv("DB_PATH=/tmp/x"); require "src/push.php"; print_r(generer_cles_vapid());'
 DB_PATH=data/board.sqlite
 ```
 
@@ -67,6 +74,7 @@ curl -X POST http://localhost:8080/api/newsletter.php \
    - `MOT_DE_PASSE_HASH` = la valeur copiée de ton `.env`
    - `API_TOKEN` = la valeur copiée de ton `.env`
    - `MCP_SECRET` = la valeur copiée de ton `.env`
+   - `VAPID_PUBLIC` et `VAPID_PRIVATE` = les valeurs copiées de ton `.env`
 4. Dans Settings → Networking, génère un domaine public.
 
 ## API
@@ -82,6 +90,15 @@ curl -X POST https://ton-app.up.railway.app/api/newsletter.php \
 - Republier à une date existante remplace la newsletter de ce jour.
 - Seules les 7 newsletters les plus récentes sont gardées : à chaque publication, les plus anciennes sont supprimées. Pour changer ce nombre, modifie `NEWSLETTERS_GARDEES` dans `src/db.php`.
 - Codes de réponse : `201` créée, `200` remplacée, `401` jeton invalide, `422` données invalides.
+
+## Notifications
+
+Le dashboard peut envoyer des notifications push (iPhone depuis l'écran d'accueil, iOS 16.4+, ou navigateur d'ordinateur) :
+- nouvelle newsletter du jour ;
+- nouvelle semaine d'entraînement (en cours ou à venir) publiée par le coach ;
+- premier bilan de la semaine en cours ou de la précédente.
+
+Les remplacements et l'import de semaines anciennes ne notifient pas. Activation : icône cloche → « Activer sur cet appareil ». Les appareils désabonnés sont retirés automatiquement.
 
 ## Connecteur Claude (entraînement)
 

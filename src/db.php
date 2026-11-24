@@ -48,6 +48,14 @@ function db(): PDO
         modifie_le  TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     )');
 
+    // Appareils abonnés aux notifications push (voir src/push.php).
+    $pdo->exec('CREATE TABLE IF NOT EXISTS abonnements_push (
+        endpoint TEXT PRIMARY KEY,         -- adresse chez le service de push (Apple, Google…)
+        p256dh   TEXT NOT NULL,            -- clé publique de l\'appareil (base64url)
+        auth     TEXT NOT NULL,            -- secret d\'authentification (base64url)
+        cree_le  TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )');
+
     // Migrations : colonnes ajoutées après la création de la table sur une base existante.
     $colonnes = $pdo->query('PRAGMA table_info(semaines_entrainement)')->fetchAll(PDO::FETCH_COLUMN, 1);
     if (!in_array('bilan', $colonnes, true)) {

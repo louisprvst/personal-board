@@ -10,6 +10,7 @@
 // Seules les 7 plus récentes sont gardées (NEWSLETTERS_GARDEES dans src/db.php).
 
 require_once __DIR__ . '/../../src/newsletters.php';
+require_once __DIR__ . '/../../src/push.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -62,6 +63,11 @@ if ($erreurs) {
 
 $existait = newsletter_du($date) !== null;
 $supprimees = enregistrer_newsletter($date, $titre, $contenu);
+
+// Notification uniquement à la première publication du jour (pas sur un remplacement).
+if (!$existait) {
+    notifier_tous('Newsletter du jour', $titre, "/newsletter.php?date=$date");
+}
 
 repondre($existait ? 200 : 201, [
     'ok' => true,

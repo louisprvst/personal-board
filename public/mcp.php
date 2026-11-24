@@ -12,6 +12,7 @@
 //   - publier_bilan   : ajoute ou remplace le bilan d'une semaine déjà publiée
 
 require_once __DIR__ . '/../src/entrainement.php';
+require_once __DIR__ . '/../src/push.php';
 
 const VERSIONS_MCP = ['2025-11-25', '2025-06-18', '2025-03-26'];
 
@@ -236,6 +237,13 @@ function outil_publier_semaine(array $a): string
 
     enregistrer_semaine($lundi, trim((string)($a['objectif'] ?? '')), $seances, $course_nom, $course_date);
 
+    // Notification pour une nouvelle semaine en cours ou à venir (pas pour l'import de semaines
+    // passées, ni pour les retouches d'un plan déjà publié).
+    if (!$existante && $lundi >= lundi_de(date('Y-m-d'))) {
+        notifier_tous('Entraînement', 'Ton plan de la semaine du ' . date('d/m', strtotime($lundi)) . ' est en ligne.',
+            "/entrainement.php?lundi=$lundi");
+    }
+
     return sprintf('Plan %s pour la semaine du %s au %s (%d séance%s). Il est visible sur le dashboard.',
         $existante ? 'remplacé' : 'publié', $lundi, $dimanche, count($seances), count($seances) > 1 ? 's' : '');
 }
@@ -255,6 +263,12 @@ function outil_publier_bilan(array $a): string
         throw new InvalidArgumentException("Aucun plan publié pour la semaine du $lundi : publie d'abord le plan avec publier_semaine.");
     }
     enregistrer_bilan($lundi, $bilan);
+
+    // Notification pour un premier bilan de la semaine en cours ou de la précédente.
+    if (!$semaine['bilan'] && $lundi >= decaler(lundi_de(date('Y-m-d')), -7)) {
+        notifier_tous('Bilan du coach', 'Le bilan de ta semaine du ' . date('d/m', strtotime($lundi)) . ' est en ligne.',
+            "/entrainement.php?lundi=$lundi");
+    }
     return sprintf('Bilan %s pour la semaine du %s. Il est visible sur le dashboard.',
         $semaine['bilan'] ? 'remplacé' : 'publié', $lundi);
 }

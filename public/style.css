@@ -287,3 +287,14 @@ button {
     cursor: pointer;
 }
 button:hover { filter: brightness(1.08); }
+
+/* ---------- Notifications ---------- */
+.etat-notif { font-weight: 600; }
+.boutons { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1rem; }
+.boutons button { padding: .7rem 1rem; }
+button.secondaire { background: transparent; color: var(--texte); border: 1px solid var(--trait); }
+.aide { margin-top: .9rem; }
+.aide h2 { font-size: 1rem; margin-top: 1rem; }
+.aide h2:first-child { margin-top: 0; }
+.aide ul { padding-left: 1.2rem; margin: 0 0 .5rem; }
+.aide p { margin: 0; color: var(--discret); }
