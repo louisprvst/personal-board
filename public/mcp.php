@@ -113,8 +113,9 @@ function outils(): array
         [
             'name' => 'publier_semaine',
             'title' => "Publier le plan d'entraînement de la semaine",
-            'description' => "Publie sur le dashboard le plan de course à pied d'une semaine (lundi → dimanche). "
-                . "Remplace le plan déjà publié pour cette semaine. Donne une séance par jour, y compris "
+            'description' => "Publie sur le dashboard le plan de course à pied d'une semaine (lundi → dimanche), "
+                . "passée, en cours ou future. Remplace le plan déjà publié pour cette semaine ; pour une "
+                . "semaine passée déjà publiée, il faut en plus remplacer: true. Donne une séance par jour, y compris "
                 . "les jours de repos (type « Repos »). Le détail doit être autonome : allures, durées, "
                 . "récupérations, consignes de FC, conseils de nutrition éventuels.",
             'inputSchema' => [
@@ -138,6 +139,8 @@ function outils(): array
                     ],
                     'course_nom' => ['type' => 'string', 'description' => 'Course visée, ex. « 10 km » (facultatif).'],
                     'course_date' => $date + ['description' => 'Date de la course visée (facultatif).'],
+                    'remplacer' => ['type' => 'boolean',
+                        'description' => 'Obligatoire (true) pour écraser une semaine passée déjà publiée. Inutile sinon.'],
                 ],
                 'required' => ['lundi', 'seances'],
             ],
@@ -205,8 +208,10 @@ function outil_publier_semaine(array $a): string
         throw new InvalidArgumentException("$lundi n'est pas un lundi.");
     }
     $dimanche = decaler($lundi, 6);
-    if ($dimanche < date('Y-m-d')) {
-        throw new InvalidArgumentException('Cette semaine est déjà terminée : seules la semaine en cours et les suivantes peuvent être publiées.');
+    $existante = semaine_entrainement($lundi);
+    if ($existante && $dimanche < date('Y-m-d') && ($a['remplacer'] ?? false) !== true) {
+        throw new InvalidArgumentException("La semaine du $lundi est terminée et déjà publiée. Pour l'écraser, "
+            . "relance avec remplacer: true (le bilan éventuel est conservé). Pour seulement ajouter un bilan, utilise publier_bilan.");
     }
 
     if (!is_array($a['seances'] ?? null) || !$a['seances']) {
@@ -229,11 +234,10 @@ function outil_publier_semaine(array $a): string
     $course_nom = trim((string)($a['course_nom'] ?? '')) ?: null;
     $course_date = isset($a['course_date']) && $a['course_date'] !== '' ? verifier_date($a['course_date'], 'course_date') : null;
 
-    $existait = semaine_entrainement($lundi) !== null;
     enregistrer_semaine($lundi, trim((string)($a['objectif'] ?? '')), $seances, $course_nom, $course_date);
 
     return sprintf('Plan %s pour la semaine du %s au %s (%d séance%s). Il est visible sur le dashboard.',
-        $existait ? 'remplacé' : 'publié', $lundi, $dimanche, count($seances), count($seances) > 1 ? 's' : '');
+        $existante ? 'remplacé' : 'publié', $lundi, $dimanche, count($seances), count($seances) > 1 ? 's' : '');
 }
 
 function outil_publier_bilan(array $a): string
